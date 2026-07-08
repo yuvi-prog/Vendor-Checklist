@@ -32,7 +32,10 @@ export default function Dashboard() {
     <div>
       <div className="topbar">
         <h1>Vendor Onboarding Checklists</h1>
-        <button className="btn" onClick={() => setShowModal(true)}>+ New Vendor</button>
+        <div className="topbar-actions">
+          <a href="/api/export/xlsx" className="btn secondary">Export to Excel</a>
+          <button className="btn" onClick={() => setShowModal(true)}>+ New Vendor</button>
+        </div>
       </div>
 
       {loading ? (

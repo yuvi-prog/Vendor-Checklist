@@ -7,6 +7,7 @@ import { migrate as migrateInitial } from './migrations/001_initial_schema.js';
 import { migrate as migrateReminders } from './migrations/002_add_reminders.js';
 import vendorsRouter from './routes/vendors.js';
 import checklistRouter from './routes/checklist.js';
+import exportRouter from './routes/export.js';
 import { startReminderScheduler } from './reminderScheduler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,6 +21,7 @@ app.use(express.json());
 
 app.use('/api/vendors', vendorsRouter);
 app.use('/api/checklist-items', checklistRouter);
+app.use('/api/export', exportRouter);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
