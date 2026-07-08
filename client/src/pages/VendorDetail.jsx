@@ -1,16 +1,23 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { api } from '../api.js'
 import CompanyInfoForm from '../components/CompanyInfoForm.jsx'
 import DealInfoForm from '../components/DealInfoForm.jsx'
 import ChecklistSection from '../components/ChecklistSection.jsx'
 import Toggle from '../components/Toggle.jsx'
+import { STATUSES, STATUS_CLASS } from '../constants.js'
 
 const TABS = ['Checklist', 'Company Info', 'Deal Terms']
 
+function formatDateTime(sqliteStr) {
+  if (!sqliteStr) return null
+  const d = new Date(sqliteStr.replace(' ', 'T') + 'Z')
+  if (Number.isNaN(d.getTime())) return null
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+}
+
 export default function VendorDetail() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [tab, setTab] = useState('Checklist')
   const [loading, setLoading] = useState(true)
@@ -19,36 +26,63 @@ export default function VendorDetail() {
     api.getVendor(id).then(setData).finally(() => setLoading(false))
   }, [id])
 
-  const handleDelete = async () => {
-    if (!confirm(`Delete ${data.vendor.company_name}? This cannot be undone.`)) return
-    await api.deleteVendor(id)
-    navigate('/')
-  }
-
   const handleToggleReminder = async (enabled) => {
     setData((d) => ({ ...d, vendor: { ...d.vendor, weekly_reminder_enabled: enabled ? 1 : 0 } }))
     await api.updateReminder(id, enabled)
+  }
+
+  const handleToggleArchive = async () => {
+    const archiving = !data.vendor.archived
+    if (archiving && !confirm(`Archive ${data.vendor.company_name}? It'll be hidden from the main dashboard but you can restore it anytime.`)) return
+    const updated = await api.updateArchived(id, archiving)
+    setData((d) => ({ ...d, vendor: updated }))
+  }
+
+  const handleStatusChange = async (status) => {
+    setData((d) => ({ ...d, vendor: { ...d.vendor, status } }))
+    await api.updateStatus(id, status)
   }
 
   if (loading) return <p className="muted">Loading…</p>
   if (!data) return <p className="muted">Vendor not found.</p>
 
   const { vendor, deal, items } = data
+  const kickoffSent = formatDateTime(vendor.kickoff_email_sent_at)
+  const lastReminder = formatDateTime(vendor.last_reminder_sent_at)
 
   return (
     <div>
       <Link to="/" className="back-link">&larr; All vendors</Link>
       <div className="topbar">
-        <h1>{vendor.company_name}</h1>
+        <h1>
+          {vendor.company_name}{' '}
+          <span className={`status-badge ${STATUS_CLASS[vendor.status] || ''}`}>{vendor.status || 'Onboarding'}</span>
+          {vendor.archived ? <span className="status-badge status-archived">Archived</span> : null}
+        </h1>
         <div className="topbar-actions">
+          <select
+            className="status-select"
+            value={vendor.status || 'Onboarding'}
+            onChange={(e) => handleStatusChange(e.target.value)}
+          >
+            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
           <Toggle
             checked={vendor.weekly_reminder_enabled}
             onChange={handleToggleReminder}
             label="Weekly email reminders"
           />
-          <button className="btn danger" onClick={handleDelete}>Delete vendor</button>
+          <button className="btn danger" onClick={handleToggleArchive}>
+            {vendor.archived ? 'Unarchive vendor' : 'Archive vendor'}
+          </button>
         </div>
       </div>
+
+      <p className="email-status-line muted">
+        Kickoff email: {kickoffSent ? `sent ${kickoffSent}` : 'not sent yet'}
+        {' · '}
+        Last weekly reminder: {lastReminder ? lastReminder : 'none sent yet'}
+      </p>
 
       <div className="tabs">
         {TABS.map((t) => (

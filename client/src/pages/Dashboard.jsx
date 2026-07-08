@@ -1,13 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api.js'
 import NewVendorModal from '../components/NewVendorModal.jsx'
 import Toggle from '../components/Toggle.jsx'
+import { STATUSES, STATUS_CLASS } from '../constants.js'
+
+const STATUS_FILTERS = ['All', ...STATUSES]
 
 export default function Dashboard() {
   const [vendors, setVendors] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
+  const [showArchived, setShowArchived] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -28,6 +34,17 @@ export default function Dashboard() {
     await api.updateReminder(id, enabled)
   }
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return vendors.filter((v) => {
+      if (!showArchived && v.archived) return false
+      if (showArchived && !v.archived) return false
+      if (statusFilter !== 'All' && v.status !== statusFilter) return false
+      if (q && !`${v.company_name} ${v.owner_full_name || ''}`.toLowerCase().includes(q)) return false
+      return true
+    })
+  }, [vendors, search, statusFilter, showArchived])
+
   return (
     <div>
       <div className="topbar">
@@ -38,21 +55,55 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="dashboard-controls">
+        <input
+          type="text"
+          className="search-input"
+          placeholder="Search by company or owner name…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="status-chips">
+          {STATUS_FILTERS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`chip ${statusFilter === s ? 'active' : ''}`}
+              onClick={() => setStatusFilter(s)}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <label className="archived-toggle">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+          />
+          Show archived
+        </label>
+      </div>
+
       {loading ? (
         <p className="muted">Loading…</p>
-      ) : vendors.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="card empty-state">
-          <p>No vendors yet. Add the first one to start a checklist.</p>
+          <p>{vendors.length === 0 ? 'No vendors yet. Add the first one to start a checklist.' : 'No vendors match your filters.'}</p>
         </div>
       ) : (
         <div className="vendor-list">
-          {vendors.map((v) => {
+          {filtered.map((v) => {
             const pct = v.total_items ? Math.round((v.done_items / v.total_items) * 100) : 0
             return (
-              <Link to={`/vendors/${v.id}`} key={v.id} className="vendor-card">
+              <Link to={`/vendors/${v.id}`} key={v.id} className={`vendor-card ${v.archived ? 'archived' : ''}`}>
                 <div className="vendor-card-top">
                   <h3>{v.company_name}</h3>
-                  <span className="muted">{pct}% complete</span>
+                  <div className="vendor-card-tags">
+                    <span className={`status-badge ${STATUS_CLASS[v.status] || ''}`}>{v.status || 'Onboarding'}</span>
+                    {v.archived ? <span className="status-badge status-archived">Archived</span> : null}
+                    <span className="muted">{pct}% complete</span>
+                  </div>
                 </div>
                 <p className="muted">{v.owner_full_name || 'No owner name on file'}</p>
                 <div className="progress-track">

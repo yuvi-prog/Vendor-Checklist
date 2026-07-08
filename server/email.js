@@ -83,7 +83,7 @@ export async function sendWeeklyReminder(vendor, items) {
     .map(([assignee, tasks]) => `
       <h4>${assignee}</h4>
       <ul>
-        ${tasks.map((t) => `<li>${t.task_name}${t.required_by ? ` (required by: ${t.required_by})` : ''}</li>`).join('')}
+        ${tasks.map((t) => `<li>${t.task_name}</li>`).join('')}
       </ul>
     `)
     .join('');

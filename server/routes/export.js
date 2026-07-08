@@ -56,7 +56,7 @@ function buildVendorSheet(vendor, deal, items) {
     ['Stationary Included', deal?.stationary_included || ''],
     [],
     ['CHECKLIST'],
-    ['Assignee', 'Task', 'Done', 'Required By'],
+    ['Assignee', 'Task', 'Done'],
   ];
 
   const merges = [];
@@ -78,15 +78,15 @@ function buildVendorSheet(vendor, deal, items) {
       currentAssignee = item.assignee;
       assigneeStartRow = rows.length;
     }
-    rows.push([item.assignee, item.task_name, item.done ? 'TRUE' : 'FALSE', item.required_by || '']);
+    rows.push([item.assignee, item.task_name, item.done ? 'TRUE' : 'FALSE']);
     for (const child of childrenOf(item.id)) {
-      rows.push(['', `    - ${child.task_name}`, child.done ? 'TRUE' : 'FALSE', child.required_by || '']);
+      rows.push(['', `    - ${child.task_name}`, child.done ? 'TRUE' : 'FALSE']);
     }
   }
   closeAssigneeMerge(rows.length - 1);
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch: 22 }, { wch: 48 }, { wch: 10 }, { wch: 16 }];
+  ws['!cols'] = [{ wch: 22 }, { wch: 48 }, { wch: 10 }];
   ws['!merges'] = merges;
   return ws;
 }

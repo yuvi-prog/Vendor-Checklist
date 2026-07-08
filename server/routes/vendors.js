@@ -135,6 +135,37 @@ router.patch('/:id/reminder', (req, res) => {
   res.json(db.prepare('SELECT * FROM vendors WHERE id = ?').get(req.params.id));
 });
 
+const VALID_STATUSES = ['Onboarding', 'Live', 'On Hold'];
+
+// PATCH /api/vendors/:id/archive
+router.patch('/:id/archive', (req, res) => {
+  const vendor = db.prepare('SELECT id FROM vendors WHERE id = ?').get(req.params.id);
+  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+  const archived = req.body?.archived ? 1 : 0;
+  db.prepare(
+    "UPDATE vendors SET archived = ?, updated_at = datetime('now') WHERE id = ?"
+  ).run(archived, req.params.id);
+
+  res.json(db.prepare('SELECT * FROM vendors WHERE id = ?').get(req.params.id));
+});
+
+// PATCH /api/vendors/:id/status
+router.patch('/:id/status', (req, res) => {
+  const vendor = db.prepare('SELECT id FROM vendors WHERE id = ?').get(req.params.id);
+  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+  if (!VALID_STATUSES.includes(req.body?.status)) {
+    return res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
+  }
+
+  db.prepare(
+    "UPDATE vendors SET status = ?, updated_at = datetime('now') WHERE id = ?"
+  ).run(req.body.status, req.params.id);
+
+  res.json(db.prepare('SELECT * FROM vendors WHERE id = ?').get(req.params.id));
+});
+
 // DELETE /api/vendors/:id
 router.delete('/:id', (req, res) => {
   const result = db.prepare('DELETE FROM vendors WHERE id = ?').run(req.params.id);

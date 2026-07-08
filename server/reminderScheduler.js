@@ -11,7 +11,7 @@ export function startReminderScheduler(db) {
 
 export async function runReminders(db) {
   const vendors = db
-    .prepare('SELECT * FROM vendors WHERE weekly_reminder_enabled = 1')
+    .prepare('SELECT * FROM vendors WHERE weekly_reminder_enabled = 1 AND archived = 0')
     .all();
 
   for (const vendor of vendors) {

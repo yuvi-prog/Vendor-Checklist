@@ -38,10 +38,6 @@ router.patch('/:id', (req, res) => {
     fields.push('done = ?');
     values.push(body.done ? 1 : 0);
   }
-  if (body.required_by !== undefined) {
-    fields.push('required_by = ?');
-    values.push(body.required_by);
-  }
   if (body.notes !== undefined) {
     fields.push('notes = ?');
     values.push(body.notes);

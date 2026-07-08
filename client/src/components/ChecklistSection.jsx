@@ -10,7 +10,7 @@ function orderedAssignees(items) {
   return [...known, ...extra]
 }
 
-function ChecklistRow({ item, isChild, editMode, assignees, onToggle, onRequiredByChange, onNameChange, onAssigneeChange, onDelete }) {
+function ChecklistRow({ item, isChild, editMode, assignees, onToggle, onNameChange, onAssigneeChange, onDelete }) {
   return (
     <div className={`checklist-item ${isChild ? 'child' : ''} ${item.done ? 'done' : ''}`}>
       <input
@@ -29,13 +29,6 @@ function ChecklistRow({ item, isChild, editMode, assignees, onToggle, onRequired
       ) : (
         <span className="task-name">{item.task_name}</span>
       )}
-      <input
-        type="text"
-        placeholder="Required by"
-        value={item.required_by || ''}
-        onChange={(e) => onRequiredByChange(item.id, e.target.value)}
-        onBlur={(e) => onRequiredByChange(item.id, e.target.value, true)}
-      />
       {editMode && (
         <>
           <select
@@ -133,12 +126,6 @@ export default function ChecklistSection({ vendorId, items, onItemsChange }) {
     await api.updateChecklistItem(id, { done })
   }
 
-  const handleRequiredByChange = (id, value, commit) => {
-    applyLocalUpdate(id, { required_by: value })
-    if (!commit) return
-    api.updateChecklistItem(id, { required_by: value })
-  }
-
   const handleNameChange = (id, value, commit) => {
     applyLocalUpdate(id, { task_name: value })
     if (!commit) return
@@ -194,7 +181,6 @@ export default function ChecklistSection({ vendorId, items, onItemsChange }) {
                 editMode={editMode}
                 assignees={assignees}
                 onToggle={handleToggle}
-                onRequiredByChange={handleRequiredByChange}
                 onNameChange={handleNameChange}
                 onAssigneeChange={handleAssigneeChange}
                 onDelete={handleDelete}
@@ -207,7 +193,6 @@ export default function ChecklistSection({ vendorId, items, onItemsChange }) {
                   editMode={editMode}
                   assignees={assignees}
                   onToggle={handleToggle}
-                  onRequiredByChange={handleRequiredByChange}
                   onNameChange={handleNameChange}
                   onAssigneeChange={handleAssigneeChange}
                   onDelete={handleDelete}
