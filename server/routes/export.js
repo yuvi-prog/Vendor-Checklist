@@ -4,96 +4,113 @@ import { db } from '../db.js';
 
 const router = Router();
 
-const VENDOR_COLUMNS = [
-  ['Company Name', 'company_name'],
-  ['ACN Number', 'acn_number'],
-  ['Company Address', 'company_address'],
-  ['Company Email', 'company_email'],
-  ['Owner Full Name', 'owner_full_name'],
-  ['Owner Address', 'owner_address'],
-  ['Owner Contact Number', 'owner_contact_number'],
-  ['Owner Email', 'owner_email'],
-  ['Sole Owner', 'sole_owner'],
-  ['Partner Name', 'partner_name'],
-  ['Partner Address', 'partner_address'],
-  ['Partner Phone', 'partner_phone'],
-  ['Partner Email', 'partner_email'],
-  ['Location', 'location'],
-  ['Date Opening', 'date_opening'],
-  ['Things To Do', 'things_to_do'],
-  ['Total Deal', 'total_deal'],
-  ['Deposit', 'deposit'],
-  ['Detailed Payment Plan', 'payment_plan'],
-  ['Franchise / Partner / Ali Model', 'franchise_model'],
-  ['Contract For Shopping Center', 'contract_shopping_center'],
-  ['Display Included', 'display_included'],
-  ['Training Included', 'training_included'],
-  ['Online Shop Included', 'online_shop_included'],
-  ['Online Shop Details', 'online_shop_details'],
-  ['Stock Price', 'stock_price'],
-  ['Retail Price', 'retail_price'],
-  ['Wifi Included', 'wifi_included'],
-  ['Laptop Included', 'laptop_included'],
-  ['Setup Included', 'setup_included'],
-  ['Kiosk Size', 'kiosk_size'],
-  ['Kiosk Type', 'kiosk_type'],
-  ['Stationary Included', 'stationary_included'],
-  ['Weekly Reminders Enabled', 'weekly_reminder_enabled'],
-  ['Checklist Progress', 'progress'],
-  ['Created At', 'created_at'],
-];
+function sanitizeSheetName(name, used) {
+  let clean = (name || 'Vendor').replace(/[:\\/?*[\]]/g, ' ').trim().slice(0, 31) || 'Vendor';
+  let candidate = clean;
+  let n = 2;
+  while (used.has(candidate.toLowerCase())) {
+    const suffix = ` (${n})`;
+    candidate = clean.slice(0, 31 - suffix.length) + suffix;
+    n += 1;
+  }
+  used.add(candidate.toLowerCase());
+  return candidate;
+}
+
+function buildVendorSheet(vendor, deal, items) {
+  const rows = [
+    ['Company Name', vendor.company_name || ''],
+    ['ACN Number', vendor.acn_number || ''],
+    ['Company Address', vendor.company_address || ''],
+    ['Company Email', vendor.company_email || ''],
+    ['Owner Full Name', vendor.owner_full_name || ''],
+    ['Owner Address', vendor.owner_address || ''],
+    ['Best Contact Number', vendor.owner_contact_number || ''],
+    ['Owner Email', vendor.owner_email || ''],
+    ['Are You The Sole Owner Of The Company?', vendor.sole_owner || ''],
+    ['Business Partner Name', vendor.partner_name || ''],
+    ['Partner Address', vendor.partner_address || ''],
+    ['Partner Phone Number', vendor.partner_phone || ''],
+    ['Partner Email Address', vendor.partner_email || ''],
+    [],
+    ['DEAL TERMS'],
+    ['Location', deal?.location || ''],
+    ['Date Opening', deal?.date_opening || ''],
+    ['Things To Do', deal?.things_to_do || ''],
+    ['Total Deal', deal?.total_deal || ''],
+    ['Deposit', deal?.deposit || ''],
+    ['Detailed Payment Plan', deal?.payment_plan || ''],
+    ['Franchise / Partner / Ali Model', deal?.franchise_model || ''],
+    ['Contract For Shopping Center (Are We Getting It For Them?)', deal?.contract_shopping_center || ''],
+    ['Display Included', deal?.display_included || ''],
+    ['Training Included', deal?.training_included || ''],
+    ['Online Shop Included In Deal', deal?.online_shop_included || ''],
+    ['Online Shop Details', deal?.online_shop_details || ''],
+    ['What Is The Stock Price', deal?.stock_price || ''],
+    ['Retail Price For The Country', deal?.retail_price || ''],
+    ['Wifi Included', deal?.wifi_included || ''],
+    ['Laptop Included As Part Of The Deal', deal?.laptop_included || ''],
+    ['Setup Included', deal?.setup_included || ''],
+    ['Size Of The Kiosk', deal?.kiosk_size || ''],
+    ['What Kind Of Kiosk', deal?.kiosk_type || ''],
+    ['Stationary Included', deal?.stationary_included || ''],
+    [],
+    ['CHECKLIST'],
+    ['Assignee', 'Task', 'Done', 'Required By'],
+  ];
+
+  const merges = [];
+  const topLevel = items.filter((i) => !i.parent_id);
+  const childrenOf = (id) => items.filter((i) => i.parent_id === id);
+
+  let currentAssignee = null;
+  let assigneeStartRow = null;
+
+  const closeAssigneeMerge = (endRow) => {
+    if (assigneeStartRow !== null && endRow > assigneeStartRow) {
+      merges.push({ s: { r: assigneeStartRow, c: 0 }, e: { r: endRow, c: 0 } });
+    }
+  };
+
+  for (const item of topLevel) {
+    if (item.assignee !== currentAssignee) {
+      closeAssigneeMerge(rows.length - 1);
+      currentAssignee = item.assignee;
+      assigneeStartRow = rows.length;
+    }
+    rows.push([item.assignee, item.task_name, item.done ? 'TRUE' : 'FALSE', item.required_by || '']);
+    for (const child of childrenOf(item.id)) {
+      rows.push(['', `    - ${child.task_name}`, child.done ? 'TRUE' : 'FALSE', child.required_by || '']);
+    }
+  }
+  closeAssigneeMerge(rows.length - 1);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 22 }, { wch: 48 }, { wch: 10 }, { wch: 16 }];
+  ws['!merges'] = merges;
+  return ws;
+}
 
 // GET /api/export/xlsx
 router.get('/xlsx', (req, res) => {
-  const vendors = db.prepare(`
-    SELECT v.*, d.location, d.date_opening, d.things_to_do, d.total_deal, d.deposit,
-           d.payment_plan, d.franchise_model, d.contract_shopping_center, d.display_included,
-           d.training_included, d.online_shop_included, d.online_shop_details, d.stock_price,
-           d.retail_price, d.wifi_included, d.laptop_included, d.setup_included, d.kiosk_size,
-           d.kiosk_type, d.stationary_included
-    FROM vendors v
-    LEFT JOIN deals d ON d.vendor_id = v.id
-    ORDER BY v.created_at DESC
-  `).all();
-
-  const items = db.prepare(`
-    SELECT ci.*, v.company_name, parent.task_name AS parent_task_name
-    FROM checklist_items ci
-    JOIN vendors v ON v.id = ci.vendor_id
-    LEFT JOIN checklist_items parent ON parent.id = ci.parent_id
-    ORDER BY v.company_name, ci.assignee, ci.sort_order
-  `).all();
-
-  const vendorRows = vendors.map((v) => {
-    const progressStmt = db.prepare(
-      'SELECT COUNT(*) AS total, SUM(done) AS done FROM checklist_items WHERE vendor_id = ?'
-    ).get(v.id);
-    const row = {};
-    for (const [label, key] of VENDOR_COLUMNS) {
-      if (key === 'progress') {
-        row[label] = `${progressStmt.done || 0} / ${progressStmt.total || 0}`;
-      } else if (key === 'weekly_reminder_enabled') {
-        row[label] = v[key] ? 'Yes' : 'No';
-      } else {
-        row[label] = v[key] ?? '';
-      }
-    }
-    return row;
-  });
-
-  const checklistRows = items.map((i) => ({
-    'Company': i.company_name,
-    'Assignee': i.assignee,
-    'Sub-task Of': i.parent_task_name || '',
-    'Task': i.task_name,
-    'Done': i.done ? 'Yes' : 'No',
-    'Required By': i.required_by || '',
-    'Notes': i.notes || '',
-  }));
-
+  const vendors = db.prepare('SELECT * FROM vendors ORDER BY created_at ASC').all();
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(vendorRows), 'Vendors');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(checklistRows), 'Checklist');
+  const usedNames = new Set();
+
+  for (const vendor of vendors) {
+    const deal = db.prepare('SELECT * FROM deals WHERE vendor_id = ?').get(vendor.id);
+    const items = db.prepare(
+      'SELECT * FROM checklist_items WHERE vendor_id = ? ORDER BY assignee, sort_order'
+    ).all(vendor.id);
+
+    const sheetName = sanitizeSheetName(vendor.company_name, usedNames);
+    const ws = buildVendorSheet(vendor, deal, items);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  }
+
+  if (vendors.length === 0) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['No vendors yet']]), 'Vendors');
+  }
 
   const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
   const filename = `vendor-checklist-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
