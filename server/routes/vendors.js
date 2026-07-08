@@ -1,0 +1,145 @@
+import { Router } from 'express';
+import { db } from '../db.js';
+import { seedChecklistForVendor } from '../checklistTemplate.js';
+import { sendKickoffEmail } from '../email.js';
+
+const router = Router();
+
+const COMPANY_FIELDS = [
+  'company_name', 'acn_number', 'company_address', 'company_email',
+  'owner_full_name', 'owner_address', 'owner_contact_number', 'owner_email',
+  'sole_owner', 'partner_name', 'partner_address', 'partner_phone', 'partner_email',
+];
+
+const DEAL_FIELDS = [
+  'location', 'date_opening', 'things_to_do', 'total_deal', 'deposit', 'payment_plan',
+  'franchise_model', 'contract_shopping_center', 'display_included', 'training_included',
+  'online_shop_included', 'online_shop_details', 'stock_price', 'retail_price',
+  'wifi_included', 'laptop_included', 'setup_included', 'kiosk_size', 'kiosk_type',
+  'stationary_included',
+];
+
+// GET /api/vendors — list with progress summary
+router.get('/', (req, res) => {
+  const vendors = db.prepare('SELECT * FROM vendors ORDER BY created_at DESC').all();
+  const progressStmt = db.prepare(`
+    SELECT COUNT(*) AS total, SUM(done) AS done
+    FROM checklist_items WHERE vendor_id = ?
+  `);
+  const result = vendors.map((v) => {
+    const progress = progressStmt.get(v.id);
+    return {
+      ...v,
+      total_items: progress.total,
+      done_items: progress.done || 0,
+    };
+  });
+  res.json(result);
+});
+
+// POST /api/vendors — create vendor + seed checklist
+router.post('/', async (req, res) => {
+  const body = req.body || {};
+  if (!body.company_name || !body.company_name.trim()) {
+    return res.status(400).json({ error: 'company_name is required' });
+  }
+
+  const cols = COMPANY_FIELDS.filter((f) => body[f] !== undefined);
+  if (body.weekly_reminder_enabled !== undefined) cols.push('weekly_reminder_enabled');
+  const placeholders = cols.map(() => '?').join(', ');
+  const values = cols.map((f) =>
+    f === 'weekly_reminder_enabled' ? (body.weekly_reminder_enabled ? 1 : 0) : body[f]
+  );
+
+  const insert = db.prepare(
+    `INSERT INTO vendors (${cols.join(', ')}) VALUES (${placeholders})`
+  );
+  const result = insert.run(...values);
+  const vendorId = Number(result.lastInsertRowid);
+
+  db.prepare('INSERT INTO deals (vendor_id) VALUES (?)').run(vendorId);
+  seedChecklistForVendor(db, vendorId);
+
+  const vendor = db.prepare('SELECT * FROM vendors WHERE id = ?').get(vendorId);
+  res.status(201).json(vendor);
+
+  try {
+    const result = await sendKickoffEmail(vendor);
+    if (!result?.skipped) {
+      db.prepare("UPDATE vendors SET kickoff_email_sent_at = datetime('now') WHERE id = ?").run(vendorId);
+    }
+  } catch (err) {
+    console.error('[email] Failed to send kickoff email:', err.message);
+  }
+});
+
+// GET /api/vendors/:id — full detail
+router.get('/:id', (req, res) => {
+  const vendor = db.prepare('SELECT * FROM vendors WHERE id = ?').get(req.params.id);
+  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+  const deal = db.prepare('SELECT * FROM deals WHERE vendor_id = ?').get(req.params.id);
+  const items = db.prepare(
+    'SELECT * FROM checklist_items WHERE vendor_id = ? ORDER BY assignee, sort_order'
+  ).all(req.params.id);
+
+  res.json({ vendor, deal, items });
+});
+
+// PUT /api/vendors/:id/company
+router.put('/:id/company', (req, res) => {
+  const vendor = db.prepare('SELECT id FROM vendors WHERE id = ?').get(req.params.id);
+  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+  const body = req.body || {};
+  const cols = COMPANY_FIELDS.filter((f) => body[f] !== undefined);
+  if (cols.length === 0) return res.json({ ok: true });
+
+  const setClause = cols.map((f) => `${f} = ?`).join(', ');
+  const values = cols.map((f) => body[f]);
+  db.prepare(
+    `UPDATE vendors SET ${setClause}, updated_at = datetime('now') WHERE id = ?`
+  ).run(...values, req.params.id);
+
+  res.json(db.prepare('SELECT * FROM vendors WHERE id = ?').get(req.params.id));
+});
+
+// PUT /api/vendors/:id/deal
+router.put('/:id/deal', (req, res) => {
+  const vendor = db.prepare('SELECT id FROM vendors WHERE id = ?').get(req.params.id);
+  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+  const body = req.body || {};
+  const cols = DEAL_FIELDS.filter((f) => body[f] !== undefined);
+  if (cols.length === 0) return res.json({ ok: true });
+
+  const setClause = cols.map((f) => `${f} = ?`).join(', ');
+  const values = cols.map((f) => body[f]);
+  db.prepare(
+    `UPDATE deals SET ${setClause}, updated_at = datetime('now') WHERE vendor_id = ?`
+  ).run(...values, req.params.id);
+
+  res.json(db.prepare('SELECT * FROM deals WHERE vendor_id = ?').get(req.params.id));
+});
+
+// PATCH /api/vendors/:id/reminder
+router.patch('/:id/reminder', (req, res) => {
+  const vendor = db.prepare('SELECT id FROM vendors WHERE id = ?').get(req.params.id);
+  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+  const enabled = req.body?.enabled ? 1 : 0;
+  db.prepare(
+    "UPDATE vendors SET weekly_reminder_enabled = ?, updated_at = datetime('now') WHERE id = ?"
+  ).run(enabled, req.params.id);
+
+  res.json(db.prepare('SELECT * FROM vendors WHERE id = ?').get(req.params.id));
+});
+
+// DELETE /api/vendors/:id
+router.delete('/:id', (req, res) => {
+  const result = db.prepare('DELETE FROM vendors WHERE id = ?').run(req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Vendor not found' });
+  res.status(204).end();
+});
+
+export default router;
