@@ -66,8 +66,8 @@ export async function sendKickoffEmail(vendor) {
   });
 }
 
-export async function sendWeeklyReminder(vendor, items) {
-  const to = officeRecipients();
+export async function sendWeeklyReminder(vendor, items, overrideRecipients) {
+  const to = overrideRecipients && overrideRecipients.length > 0 ? overrideRecipients : officeRecipients();
   if (to.length === 0) return { skipped: true };
 
   const incomplete = items.filter((i) => !i.done);

@@ -73,7 +73,31 @@ h1, h2, h3 {
 }
 
 .email-status-line {
-  margin: -8px 0 20px;
+  margin: -8px 0 12px;
+}
+
+.test-reminder-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.test-reminder-row input {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--white);
+  color: var(--charcoal);
+  min-width: 220px;
+}
+
+.test-reminder-row .btn {
+  padding: 7px 14px;
+  font-size: 13px;
 }
 
 .btn {

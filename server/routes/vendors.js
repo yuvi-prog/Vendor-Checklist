@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { seedChecklistForVendor } from '../checklistTemplate.js';
-import { sendKickoffEmail } from '../email.js';
+import { sendKickoffEmail, sendWeeklyReminder } from '../email.js';
 
 const router = Router();
 
@@ -133,6 +133,31 @@ router.patch('/:id/reminder', (req, res) => {
   ).run(enabled, req.params.id);
 
   res.json(db.prepare('SELECT * FROM vendors WHERE id = ?').get(req.params.id));
+});
+
+// POST /api/vendors/:id/send-test-reminder — manually trigger the weekly
+// reminder email for one vendor, sent only to the given address (not the
+// office list), for testing without waiting for the Monday cron.
+router.post('/:id/send-test-reminder', async (req, res) => {
+  const vendor = db.prepare('SELECT * FROM vendors WHERE id = ?').get(req.params.id);
+  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+  const email = (req.body?.email || '').trim();
+  if (!email) return res.status(400).json({ error: 'email is required' });
+
+  const items = db.prepare(
+    'SELECT * FROM checklist_items WHERE vendor_id = ? ORDER BY assignee, sort_order'
+  ).all(vendor.id);
+
+  try {
+    const result = await sendWeeklyReminder(vendor, items, [email]);
+    if (result?.skipped) {
+      return res.status(503).json({ error: 'Email sending is not configured (missing SendGrid credentials)' });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
 });
 
 const VALID_STATUSES = ['Onboarding', 'Live', 'On Hold'];

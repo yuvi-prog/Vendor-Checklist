@@ -21,6 +21,9 @@ export default function VendorDetail() {
   const [data, setData] = useState(null)
   const [tab, setTab] = useState('Checklist')
   const [loading, setLoading] = useState(true)
+  const [testEmail, setTestEmail] = useState('')
+  const [testStatus, setTestStatus] = useState('')
+  const [sendingTest, setSendingTest] = useState(false)
 
   useEffect(() => {
     api.getVendor(id).then(setData).finally(() => setLoading(false))
@@ -41,6 +44,21 @@ export default function VendorDetail() {
   const handleStatusChange = async (status) => {
     setData((d) => ({ ...d, vendor: { ...d.vendor, status } }))
     await api.updateStatus(id, status)
+  }
+
+  const handleSendTestReminder = async (e) => {
+    e.preventDefault()
+    if (!testEmail.trim()) return
+    setSendingTest(true)
+    setTestStatus('')
+    try {
+      await api.sendTestReminder(id, testEmail.trim())
+      setTestStatus(`Sent to ${testEmail.trim()}`)
+    } catch (err) {
+      setTestStatus(`Failed: ${err.message}`)
+    } finally {
+      setSendingTest(false)
+    }
   }
 
   if (loading) return <p className="muted">Loading…</p>
@@ -83,6 +101,20 @@ export default function VendorDetail() {
         {' · '}
         Last weekly reminder: {lastReminder ? lastReminder : 'none sent yet'}
       </p>
+
+      <form className="test-reminder-row" onSubmit={handleSendTestReminder}>
+        <input
+          type="email"
+          placeholder="your email address"
+          value={testEmail}
+          onChange={(e) => setTestEmail(e.target.value)}
+          required
+        />
+        <button type="submit" className="btn secondary" disabled={sendingTest}>
+          {sendingTest ? 'Sending…' : 'Send this week’s reminder to me'}
+        </button>
+        {testStatus && <span className="muted">{testStatus}</span>}
+      </form>
 
       <div className="tabs">
         {TABS.map((t) => (

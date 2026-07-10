@@ -23,6 +23,7 @@ export const api = {
   updateReminder: (id, enabled) => request(`/vendors/${id}/reminder`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
   updateArchived: (id, archived) => request(`/vendors/${id}/archive`, { method: 'PATCH', body: JSON.stringify({ archived }) }),
   updateStatus: (id, status) => request(`/vendors/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  sendTestReminder: (id, email) => request(`/vendors/${id}/send-test-reminder`, { method: 'POST', body: JSON.stringify({ email }) }),
   updateChecklistItem: (id, data) => request(`/checklist-items/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   createChecklistItem: (data) => request('/checklist-items', { method: 'POST', body: JSON.stringify(data) }),
   deleteChecklistItem: (id) => request(`/checklist-items/${id}`, { method: 'DELETE' }),
