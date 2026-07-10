@@ -1,3 +1,5 @@
+import { wrapEmail, heading, paragraph, button, progressBar, assigneeGroup, successNote } from './emailTemplates.js';
+
 const SENDGRID_URL = 'https://api.sendgrid.com/v3/mail/send';
 
 function officeRecipients() {
@@ -50,19 +52,21 @@ export async function sendKickoffEmail(vendor) {
   }
 
   const link = `${appUrl()}/vendors/${vendor.id}`;
-  const html = `
-    <p>Hi team,</p>
-    <p><strong>${vendor.company_name}</strong> has just been set up as a new vendor.</p>
-    <p>This email is the loop for <strong>${vendor.company_name}</strong> — please use it (or the checklist link below) to keep everyone posted as you complete your onboarding tasks.</p>
-    <p><a href="${link}">${link}</a></p>
-    ${vendor.owner_full_name ? `<p>Owner: ${vendor.owner_full_name}</p>` : ''}
-    <p>Please update us here once your tasks are done. Thanks!</p>
-  `;
+  const bodyHtml = [
+    heading(`New Vendor: ${vendor.company_name}`),
+    paragraph('Hi team,'),
+    paragraph(
+      `<strong>${vendor.company_name}</strong> has just been set up as a new vendor. This email is the loop for <strong>${vendor.company_name}</strong> — please use it, or the checklist link below, to keep everyone posted as you complete your onboarding tasks.`
+    ),
+    vendor.owner_full_name ? paragraph(`Owner: <strong>${vendor.owner_full_name}</strong>`) : '',
+    button(link, 'Open Checklist'),
+    paragraph('Please update us here once your tasks are done. Thanks!'),
+  ].join('');
 
   return sendEmail({
     to,
     subject: `New Vendor Loop: ${vendor.company_name}`,
-    html,
+    html: wrapEmail({ preheader: `${vendor.company_name} has been added — check the onboarding checklist`, bodyHtml }),
   });
 }
 
@@ -80,25 +84,22 @@ export async function sendWeeklyReminder(vendor, items, overrideRecipients) {
   }
 
   const sections = Object.entries(byAssignee)
-    .map(([assignee, tasks]) => `
-      <h4>${assignee}</h4>
-      <ul>
-        ${tasks.map((t) => `<li>${t.task_name}</li>`).join('')}
-      </ul>
-    `)
+    .map(([assignee, tasks]) => assigneeGroup(assignee, tasks))
     .join('');
 
   const link = `${appUrl()}/vendors/${vendor.id}`;
-  const html = `
-    <p>Hi team,</p>
-    <p>Weekly reminder for <strong>${vendor.company_name}</strong> — ${done}/${items.length} checklist items complete.</p>
-    ${incomplete.length > 0 ? `<p>Still outstanding:</p>${sections}` : '<p>Everything is complete — nice work!</p>'}
-    <p><a href="${link}">${link}</a></p>
-  `;
+  const bodyHtml = [
+    heading(`Weekly Reminder: ${vendor.company_name}`),
+    progressBar(done, items.length),
+    incomplete.length > 0
+      ? paragraph('Still outstanding:') + sections
+      : successNote('Everything is complete — nice work!'),
+    button(link, 'Open Checklist'),
+  ].join('');
 
   return sendEmail({
     to,
     subject: `Weekly reminder: ${vendor.company_name} (${done}/${items.length} complete)`,
-    html,
+    html: wrapEmail({ preheader: `${done}/${items.length} complete for ${vendor.company_name}`, bodyHtml }),
   });
 }
