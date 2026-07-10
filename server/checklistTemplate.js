@@ -40,7 +40,7 @@ export const CHECKLIST_TEMPLATE = [
     ],
   },
   {
-    assignee: 'Dor',
+    assignee: 'Dor/Yamin',
     tasks: [
       'First stock order with the vendor',
       'Kiosk setup if required',

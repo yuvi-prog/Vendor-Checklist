@@ -6,6 +6,7 @@ import { db } from './db.js';
 import { migrate as migrateInitial } from './migrations/001_initial_schema.js';
 import { migrate as migrateReminders } from './migrations/002_add_reminders.js';
 import { migrate as migrateArchiveStatus } from './migrations/003_add_archive_status.js';
+import { migrate as migrateDorYamin } from './migrations/004_rename_dor_to_dor_yamin.js';
 import vendorsRouter from './routes/vendors.js';
 import checklistRouter from './routes/checklist.js';
 import exportRouter from './routes/export.js';
@@ -16,6 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 migrateInitial(db);
 migrateReminders(db);
 migrateArchiveStatus(db);
+migrateDorYamin(db);
 
 const app = express();
 app.use(cors());

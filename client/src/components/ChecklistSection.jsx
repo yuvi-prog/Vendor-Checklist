@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { api } from '../api.js'
 
-const PREFERRED_ORDER = ['Lina', 'Yuvi', 'Lauren', 'Dor', 'Jose']
+const PREFERRED_ORDER = ['Lina', 'Yuvi', 'Lauren', 'Dor/Yamin', 'Jose']
 
 function orderedAssignees(items) {
   const present = [...new Set(items.filter((i) => !i.parent_id).map((i) => i.assignee))]
