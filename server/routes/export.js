@@ -17,21 +17,17 @@ function sanitizeSheetName(name, used) {
   return candidate;
 }
 
-function buildVendorSheet(vendor, deal, items) {
+function buildVendorSheet(vendor, deal, items, people) {
   const rows = [
     ['Company Name', vendor.company_name || ''],
-    ['ACN Number', vendor.acn_number || ''],
+    ['ACN/ABN', vendor.acn_number || ''],
     ['Company Address', vendor.company_address || ''],
     ['Company Email', vendor.company_email || ''],
-    ['Owner Full Name', vendor.owner_full_name || ''],
-    ['Owner Address', vendor.owner_address || ''],
-    ['Best Contact Number', vendor.owner_contact_number || ''],
-    ['Owner Email', vendor.owner_email || ''],
     ['Are You The Sole Owner Of The Company?', vendor.sole_owner || ''],
-    ['Business Partner Name', vendor.partner_name || ''],
-    ['Partner Address', vendor.partner_address || ''],
-    ['Partner Phone Number', vendor.partner_phone || ''],
-    ['Partner Email Address', vendor.partner_email || ''],
+    [],
+    ['PEOPLE ON THIS DEAL'],
+    ['Full Name', 'Address', 'Phone', 'Email'],
+    ...people.map((p) => [p.full_name || '', p.address || '', p.phone || '', p.email || '']),
     [],
     ['DEAL TERMS'],
     ['Location', deal?.location || ''],
@@ -86,7 +82,7 @@ function buildVendorSheet(vendor, deal, items) {
   closeAssigneeMerge(rows.length - 1);
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch: 22 }, { wch: 48 }, { wch: 10 }];
+  ws['!cols'] = [{ wch: 22 }, { wch: 48 }, { wch: 16 }, { wch: 28 }];
   ws['!merges'] = merges;
   return ws;
 }
@@ -102,9 +98,12 @@ router.get('/xlsx', (req, res) => {
     const items = db.prepare(
       'SELECT * FROM checklist_items WHERE vendor_id = ? ORDER BY assignee, sort_order'
     ).all(vendor.id);
+    const people = db.prepare(
+      'SELECT * FROM vendor_people WHERE vendor_id = ? ORDER BY sort_order'
+    ).all(vendor.id);
 
     const sheetName = sanitizeSheetName(vendor.company_name, usedNames);
-    const ws = buildVendorSheet(vendor, deal, items);
+    const ws = buildVendorSheet(vendor, deal, items, people);
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   }
 

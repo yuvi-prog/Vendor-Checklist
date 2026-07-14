@@ -27,4 +27,7 @@ export const api = {
   updateChecklistItem: (id, data) => request(`/checklist-items/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   createChecklistItem: (data) => request('/checklist-items', { method: 'POST', body: JSON.stringify(data) }),
   deleteChecklistItem: (id) => request(`/checklist-items/${id}`, { method: 'DELETE' }),
+  addPerson: (vendorId, data) => request(`/vendors/${vendorId}/people`, { method: 'POST', body: JSON.stringify(data) }),
+  updatePerson: (id, data) => request(`/people/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deletePerson: (id) => request(`/people/${id}`, { method: 'DELETE' }),
 };

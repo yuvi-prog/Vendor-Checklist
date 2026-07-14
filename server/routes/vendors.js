@@ -6,9 +6,7 @@ import { sendKickoffEmail, sendWeeklyReminder } from '../email.js';
 const router = Router();
 
 const COMPANY_FIELDS = [
-  'company_name', 'acn_number', 'company_address', 'company_email',
-  'owner_full_name', 'owner_address', 'owner_contact_number', 'owner_email',
-  'sole_owner', 'partner_name', 'partner_address', 'partner_phone', 'partner_email',
+  'company_name', 'acn_number', 'company_address', 'company_email', 'sole_owner',
 ];
 
 const DEAL_FIELDS = [
@@ -21,17 +19,27 @@ const DEAL_FIELDS = [
 
 // GET /api/vendors — list with progress summary
 router.get('/', (req, res) => {
-  const vendors = db.prepare('SELECT * FROM vendors ORDER BY created_at DESC').all();
+  const vendors = db.prepare(`
+    SELECT v.*, d.date_opening
+    FROM vendors v
+    LEFT JOIN deals d ON d.vendor_id = v.id
+    ORDER BY v.created_at DESC
+  `).all();
   const progressStmt = db.prepare(`
     SELECT COUNT(*) AS total, SUM(done) AS done
     FROM checklist_items WHERE vendor_id = ?
   `);
+  const primaryContactStmt = db.prepare(`
+    SELECT full_name FROM vendor_people WHERE vendor_id = ? ORDER BY sort_order LIMIT 1
+  `);
   const result = vendors.map((v) => {
     const progress = progressStmt.get(v.id);
+    const primaryContact = primaryContactStmt.get(v.id);
     return {
       ...v,
       total_items: progress.total,
       done_items: progress.done || 0,
+      primary_contact_name: primaryContact?.full_name || null,
     };
   });
   res.json(result);
@@ -60,6 +68,17 @@ router.post('/', async (req, res) => {
   db.prepare('INSERT INTO deals (vendor_id) VALUES (?)').run(vendorId);
   seedChecklistForVendor(db, vendorId);
 
+  if (Array.isArray(body.people)) {
+    const insertPerson = db.prepare(`
+      INSERT INTO vendor_people (vendor_id, full_name, address, phone, email, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    body.people.forEach((p, idx) => {
+      if (!p || (!p.full_name && !p.address && !p.phone && !p.email)) return;
+      insertPerson.run(vendorId, p.full_name || null, p.address || null, p.phone || null, p.email || null, idx);
+    });
+  }
+
   const vendor = db.prepare('SELECT * FROM vendors WHERE id = ?').get(vendorId);
   res.status(201).json(vendor);
 
@@ -82,8 +101,29 @@ router.get('/:id', (req, res) => {
   const items = db.prepare(
     'SELECT * FROM checklist_items WHERE vendor_id = ? ORDER BY assignee, sort_order'
   ).all(req.params.id);
+  const people = db.prepare(
+    'SELECT * FROM vendor_people WHERE vendor_id = ? ORDER BY sort_order'
+  ).all(req.params.id);
 
-  res.json({ vendor, deal, items });
+  res.json({ vendor, deal, items, people });
+});
+
+// POST /api/vendors/:id/people — add a person to an existing vendor
+router.post('/:id/people', (req, res) => {
+  const vendor = db.prepare('SELECT id FROM vendors WHERE id = ?').get(req.params.id);
+  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+  const body = req.body || {};
+  const maxOrder = db.prepare(
+    'SELECT COALESCE(MAX(sort_order), -1) AS maxOrder FROM vendor_people WHERE vendor_id = ?'
+  ).get(req.params.id);
+
+  const result = db.prepare(`
+    INSERT INTO vendor_people (vendor_id, full_name, address, phone, email, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(req.params.id, body.full_name || null, body.address || null, body.phone || null, body.email || null, maxOrder.maxOrder + 1);
+
+  res.status(201).json(db.prepare('SELECT * FROM vendor_people WHERE id = ?').get(result.lastInsertRowid));
 });
 
 // PUT /api/vendors/:id/company

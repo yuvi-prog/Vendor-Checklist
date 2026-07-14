@@ -6,24 +6,26 @@ const initial = {
   acn_number: '',
   company_address: '',
   company_email: '',
-  owner_full_name: '',
-  owner_address: '',
-  owner_contact_number: '',
-  owner_email: '',
   sole_owner: '',
-  partner_name: '',
-  partner_address: '',
-  partner_phone: '',
-  partner_email: '',
   weekly_reminder_enabled: false,
 }
 
+const emptyPerson = { full_name: '', address: '', phone: '', email: '' }
+
 export default function NewVendorModal({ onCancel, onCreate }) {
   const [form, setForm] = useState(initial)
+  const [people, setPeople] = useState([{ ...emptyPerson }])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+
+  const setPersonField = (index, key) => (e) => {
+    setPeople((p) => p.map((person, i) => (i === index ? { ...person, [key]: e.target.value } : person)))
+  }
+
+  const addPersonRow = () => setPeople((p) => [...p, { ...emptyPerson }])
+  const removePersonRow = (index) => setPeople((p) => p.filter((_, i) => i !== index))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -34,7 +36,8 @@ export default function NewVendorModal({ onCancel, onCreate }) {
     setSaving(true)
     setError('')
     try {
-      await onCreate(form)
+      const nonEmptyPeople = people.filter((p) => p.full_name || p.address || p.phone || p.email)
+      await onCreate({ ...form, people: nonEmptyPeople })
     } catch (err) {
       setError(err.message)
       setSaving(false)
@@ -45,7 +48,7 @@ export default function NewVendorModal({ onCancel, onCreate }) {
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>New Vendor</h2>
-        <p className="muted">Enter the company &amp; owner details to start the checklist.</p>
+        <p className="muted">Enter the company &amp; contact details to start the checklist.</p>
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <div className="field full">
@@ -53,7 +56,7 @@ export default function NewVendorModal({ onCancel, onCreate }) {
               <input value={form.company_name} onChange={set('company_name')} name="company_name" />
             </div>
             <div className="field">
-              <label>ACN number</label>
+              <label>ACN/ABN</label>
               <input value={form.acn_number} onChange={set('acn_number')} name="acn_number" />
             </div>
             <div className="field">
@@ -66,23 +69,6 @@ export default function NewVendorModal({ onCancel, onCreate }) {
             </div>
 
             <div className="field">
-              <label>Owner full name</label>
-              <input value={form.owner_full_name} onChange={set('owner_full_name')} name="owner_full_name" />
-            </div>
-            <div className="field">
-              <label>Owner contact number</label>
-              <input value={form.owner_contact_number} onChange={set('owner_contact_number')} name="owner_contact_number" />
-            </div>
-            <div className="field full">
-              <label>Owner address</label>
-              <input value={form.owner_address} onChange={set('owner_address')} name="owner_address" />
-            </div>
-            <div className="field full">
-              <label>Owner email</label>
-              <input type="email" value={form.owner_email} onChange={set('owner_email')} name="owner_email" />
-            </div>
-
-            <div className="field">
               <label>Sole owner of the company?</label>
               <select value={form.sole_owner} onChange={set('sole_owner')} name="sole_owner">
                 <option value="">-</option>
@@ -90,27 +76,41 @@ export default function NewVendorModal({ onCancel, onCreate }) {
                 <option value="No">No</option>
               </select>
             </div>
+          </div>
 
-            {form.sole_owner === 'No' && (
-              <>
-                <div className="field">
-                  <label>Business partner name</label>
-                  <input value={form.partner_name} onChange={set('partner_name')} name="partner_name" />
+          <div className="people-section">
+            <div className="people-section-head">
+              <label>People on this deal</label>
+              <button type="button" className="btn secondary small" onClick={addPersonRow}>+ Add person</button>
+            </div>
+
+            {people.map((person, index) => (
+              <div className="person-row" key={index}>
+                <div className="form-grid">
+                  <div className="field">
+                    <label>Full name</label>
+                    <input value={person.full_name} onChange={setPersonField(index, 'full_name')} />
+                  </div>
+                  <div className="field">
+                    <label>Phone number</label>
+                    <input value={person.phone} onChange={setPersonField(index, 'phone')} />
+                  </div>
+                  <div className="field full">
+                    <label>Address</label>
+                    <input value={person.address} onChange={setPersonField(index, 'address')} />
+                  </div>
+                  <div className="field full">
+                    <label>Email address</label>
+                    <input type="email" value={person.email} onChange={setPersonField(index, 'email')} />
+                  </div>
                 </div>
-                <div className="field full">
-                  <label>Partner address</label>
-                  <input value={form.partner_address} onChange={set('partner_address')} name="partner_address" />
-                </div>
-                <div className="field">
-                  <label>Partner phone</label>
-                  <input value={form.partner_phone} onChange={set('partner_phone')} name="partner_phone" />
-                </div>
-                <div className="field">
-                  <label>Partner email</label>
-                  <input type="email" value={form.partner_email} onChange={set('partner_email')} name="partner_email" />
-                </div>
-              </>
-            )}
+                {people.length > 1 && (
+                  <button type="button" className="icon-btn danger remove-person" title="Remove person" onClick={() => removePersonRow(index)}>
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
 
           <div className="reminder-row">

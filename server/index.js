@@ -7,9 +7,11 @@ import { migrate as migrateInitial } from './migrations/001_initial_schema.js';
 import { migrate as migrateReminders } from './migrations/002_add_reminders.js';
 import { migrate as migrateArchiveStatus } from './migrations/003_add_archive_status.js';
 import { migrate as migrateDorYamin } from './migrations/004_rename_dor_to_dor_yamin.js';
+import { migrate as migrateVendorPeople } from './migrations/005_vendor_people.js';
 import vendorsRouter from './routes/vendors.js';
 import checklistRouter from './routes/checklist.js';
 import exportRouter from './routes/export.js';
+import peopleRouter from './routes/people.js';
 import { startReminderScheduler } from './reminderScheduler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -18,6 +20,7 @@ migrateInitial(db);
 migrateReminders(db);
 migrateArchiveStatus(db);
 migrateDorYamin(db);
+migrateVendorPeople(db);
 
 const app = express();
 app.use(cors());
@@ -26,6 +29,7 @@ app.use(express.json());
 app.use('/api/vendors', vendorsRouter);
 app.use('/api/checklist-items', checklistRouter);
 app.use('/api/export', exportRouter);
+app.use('/api/people', peopleRouter);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 

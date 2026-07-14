@@ -662,3 +662,71 @@ h1, h2, h3 {
   background: var(--surface-2);
   color: var(--text);
 }
+
+/* People on this deal */
+.people-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.people-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.people-section-head label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.btn.small {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.person-row {
+  position: relative;
+  padding: 14px 40px 4px 14px;
+  margin-bottom: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.remove-person {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+/* Opening date */
+.opening-badge {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+.vendor-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.vendor-card-meta .muted {
+  margin: 0;
+}
+
+.opening-date {
+  white-space: nowrap;
+}

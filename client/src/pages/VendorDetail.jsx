@@ -6,15 +6,9 @@ import DealInfoForm from '../components/DealInfoForm.jsx'
 import ChecklistSection from '../components/ChecklistSection.jsx'
 import Toggle from '../components/Toggle.jsx'
 import { STATUSES, STATUS_CLASS } from '../constants.js'
+import { formatDateTime, formatDateOnly } from '../utils.js'
 
 const TABS = ['Checklist', 'Company Info', 'Deal Terms']
-
-function formatDateTime(sqliteStr) {
-  if (!sqliteStr) return null
-  const d = new Date(sqliteStr.replace(' ', 'T') + 'Z')
-  if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-}
 
 export default function VendorDetail() {
   const { id } = useParams()
@@ -64,9 +58,10 @@ export default function VendorDetail() {
   if (loading) return <p className="muted">Loading…</p>
   if (!data) return <p className="muted">Vendor not found.</p>
 
-  const { vendor, deal, items } = data
+  const { vendor, deal, items, people } = data
   const kickoffSent = formatDateTime(vendor.kickoff_email_sent_at)
   const lastReminder = formatDateTime(vendor.last_reminder_sent_at)
+  const openingDate = formatDateOnly(deal?.date_opening)
 
   return (
     <div>
@@ -76,6 +71,7 @@ export default function VendorDetail() {
           {vendor.company_name}{' '}
           <span className={`status-badge ${STATUS_CLASS[vendor.status] || ''}`}>{vendor.status || 'Onboarding'}</span>
           {vendor.archived ? <span className="status-badge status-archived">Archived</span> : null}
+          <span className="opening-badge">{openingDate ? `Opens ${openingDate}` : 'Opening date not set'}</span>
         </h1>
         <div className="topbar-actions">
           <select
@@ -139,7 +135,9 @@ export default function VendorDetail() {
       {tab === 'Company Info' && (
         <CompanyInfoForm
           vendor={vendor}
+          people={people}
           onSaved={(updated) => setData((d) => ({ ...d, vendor: updated }))}
+          onPeopleChange={(newPeople) => setData((d) => ({ ...d, people: newPeople }))}
         />
       )}
 

@@ -4,6 +4,7 @@ import { api } from '../api.js'
 import NewVendorModal from '../components/NewVendorModal.jsx'
 import Toggle from '../components/Toggle.jsx'
 import { STATUSES, STATUS_CLASS } from '../constants.js'
+import { formatDateOnly } from '../utils.js'
 
 const STATUS_FILTERS = ['All', ...STATUSES]
 
@@ -40,7 +41,7 @@ export default function Dashboard() {
       if (!showArchived && v.archived) return false
       if (showArchived && !v.archived) return false
       if (statusFilter !== 'All' && v.status !== statusFilter) return false
-      if (q && !`${v.company_name} ${v.owner_full_name || ''}`.toLowerCase().includes(q)) return false
+      if (q && !`${v.company_name} ${v.primary_contact_name || ''}`.toLowerCase().includes(q)) return false
       return true
     })
   }, [vendors, search, statusFilter, showArchived])
@@ -105,7 +106,10 @@ export default function Dashboard() {
                     <span className="muted">{pct}% complete</span>
                   </div>
                 </div>
-                <p className="muted">{v.owner_full_name || 'No owner name on file'}</p>
+                <div className="vendor-card-meta">
+                  <p className="muted">{v.primary_contact_name || 'No contact on file'}</p>
+                  <p className="muted opening-date">{formatDateOnly(v.date_opening) ? `Opens ${formatDateOnly(v.date_opening)}` : 'Opening date not set'}</p>
+                </div>
                 <div className="progress-track">
                   <div className="progress-fill" style={{ width: `${pct}%` }} />
                 </div>
