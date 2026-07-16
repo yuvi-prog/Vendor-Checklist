@@ -97,3 +97,34 @@ export function assigneeGroup(assignee, tasks) {
 export function successNote(text) {
   return `<p style="font-family:${SANS}; font-size:14px; color:${COLORS.success}; font-weight:bold; margin:0 0 14px;">${text}</p>`;
 }
+
+function formatDateOnly(dateStr) {
+  if (!dateStr) return null;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  const date = new Date(y, m - 1, d);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('en-AU', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+export function dealMeta(deal) {
+  const location = deal?.location?.trim() || 'Not set yet';
+  const opening = formatDateOnly(deal?.date_opening) || 'Not set yet';
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
+      <tr>
+        <td style="font-family:${SANS}; font-size:13px; color:${COLORS.charcoalSoft}; padding-right:20px;">
+          Location<br><strong style="font-size:14px; color:${COLORS.charcoal};">${location}</strong>
+        </td>
+        <td style="font-family:${SANS}; font-size:13px; color:${COLORS.charcoalSoft};">
+          Opening date<br><strong style="font-size:14px; color:${COLORS.charcoal};">${opening}</strong>
+        </td>
+      </tr>
+    </table>`;
+}
+
+export function peopleLine(people) {
+  const names = (people || []).map((p) => p.full_name).filter(Boolean);
+  if (names.length === 0) return '';
+  return paragraph(`Contact${names.length > 1 ? 's' : ''}: <strong>${names.join(', ')}</strong>`);
+}

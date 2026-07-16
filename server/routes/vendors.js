@@ -83,7 +83,9 @@ router.post('/', async (req, res) => {
   res.status(201).json(vendor);
 
   try {
-    const result = await sendKickoffEmail(vendor);
+    const deal = db.prepare('SELECT * FROM deals WHERE vendor_id = ?').get(vendorId);
+    const people = db.prepare('SELECT * FROM vendor_people WHERE vendor_id = ? ORDER BY sort_order').all(vendorId);
+    const result = await sendKickoffEmail(vendor, deal, people);
     if (!result?.skipped) {
       db.prepare("UPDATE vendors SET kickoff_email_sent_at = datetime('now') WHERE id = ?").run(vendorId);
     }
@@ -185,12 +187,13 @@ router.post('/:id/send-test-reminder', async (req, res) => {
   const email = (req.body?.email || '').trim();
   if (!email) return res.status(400).json({ error: 'email is required' });
 
+  const deal = db.prepare('SELECT * FROM deals WHERE vendor_id = ?').get(vendor.id);
   const items = db.prepare(
     'SELECT * FROM checklist_items WHERE vendor_id = ? ORDER BY assignee, sort_order'
   ).all(vendor.id);
 
   try {
-    const result = await sendWeeklyReminder(vendor, items, [email]);
+    const result = await sendWeeklyReminder(vendor, deal, items, [email]);
     if (result?.skipped) {
       return res.status(503).json({ error: 'Email sending is not configured (missing SendGrid credentials)' });
     }

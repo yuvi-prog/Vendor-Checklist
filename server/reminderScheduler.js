@@ -15,12 +15,13 @@ export async function runReminders(db) {
     .all();
 
   for (const vendor of vendors) {
+    const deal = db.prepare('SELECT * FROM deals WHERE vendor_id = ?').get(vendor.id);
     const items = db
       .prepare('SELECT * FROM checklist_items WHERE vendor_id = ? ORDER BY assignee, sort_order')
       .all(vendor.id);
 
     try {
-      const result = await sendWeeklyReminder(vendor, items);
+      const result = await sendWeeklyReminder(vendor, deal, items);
       if (!result?.skipped) {
         db.prepare("UPDATE vendors SET last_reminder_sent_at = datetime('now') WHERE id = ?").run(vendor.id);
       }

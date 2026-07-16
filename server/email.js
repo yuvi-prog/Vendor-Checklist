@@ -1,4 +1,4 @@
-import { wrapEmail, heading, paragraph, button, progressBar, assigneeGroup, successNote } from './emailTemplates.js';
+import { wrapEmail, heading, paragraph, button, progressBar, assigneeGroup, successNote, dealMeta, peopleLine } from './emailTemplates.js';
 
 const SENDGRID_URL = 'https://api.sendgrid.com/v3/mail/send';
 
@@ -44,7 +44,7 @@ async function sendEmail({ to, subject, html }) {
   return { skipped: false };
 }
 
-export async function sendKickoffEmail(vendor) {
+export async function sendKickoffEmail(vendor, deal, people) {
   const to = officeRecipients();
   if (to.length === 0) {
     console.warn('[email] OFFICE_RECIPIENTS not set — skipping kickoff email');
@@ -58,7 +58,8 @@ export async function sendKickoffEmail(vendor) {
     paragraph(
       `<strong>${vendor.company_name}</strong> has just been set up as a new vendor. This email is the loop for <strong>${vendor.company_name}</strong> — please use it, or the checklist link below, to keep everyone posted as you complete your onboarding tasks.`
     ),
-    vendor.owner_full_name ? paragraph(`Owner: <strong>${vendor.owner_full_name}</strong>`) : '',
+    dealMeta(deal),
+    peopleLine(people),
     button(link, 'Open Checklist'),
     paragraph('Please update us here once your tasks are done. Thanks!'),
   ].join('');
@@ -70,7 +71,7 @@ export async function sendKickoffEmail(vendor) {
   });
 }
 
-export async function sendWeeklyReminder(vendor, items, overrideRecipients) {
+export async function sendWeeklyReminder(vendor, deal, items, overrideRecipients) {
   const to = overrideRecipients && overrideRecipients.length > 0 ? overrideRecipients : officeRecipients();
   if (to.length === 0) return { skipped: true };
 
@@ -90,6 +91,7 @@ export async function sendWeeklyReminder(vendor, items, overrideRecipients) {
   const link = `${appUrl()}/vendors/${vendor.id}`;
   const bodyHtml = [
     heading(`Weekly Reminder: ${vendor.company_name}`),
+    dealMeta(deal),
     progressBar(done, items.length),
     incomplete.length > 0
       ? paragraph('Still outstanding:') + sections
