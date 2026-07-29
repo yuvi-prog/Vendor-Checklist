@@ -6,7 +6,7 @@ import { sendKickoffEmail, sendWeeklyReminder } from '../email.js';
 const router = Router();
 
 const COMPANY_FIELDS = [
-  'company_name', 'acn_number', 'company_address', 'company_email', 'sole_owner',
+  'company_name', 'acn_number', 'abn_number', 'company_address', 'company_email', 'sole_owner',
 ];
 
 const DEAL_FIELDS = [

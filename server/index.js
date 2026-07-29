@@ -8,6 +8,7 @@ import { migrate as migrateReminders } from './migrations/002_add_reminders.js';
 import { migrate as migrateArchiveStatus } from './migrations/003_add_archive_status.js';
 import { migrate as migrateDorYamin } from './migrations/004_rename_dor_to_dor_yamin.js';
 import { migrate as migrateVendorPeople } from './migrations/005_vendor_people.js';
+import { migrate as migrateAcnAbn } from './migrations/006_split_acn_abn.js';
 import vendorsRouter from './routes/vendors.js';
 import checklistRouter from './routes/checklist.js';
 import exportRouter from './routes/export.js';
@@ -21,6 +22,7 @@ migrateReminders(db);
 migrateArchiveStatus(db);
 migrateDorYamin(db);
 migrateVendorPeople(db);
+migrateAcnAbn(db);
 
 const app = express();
 app.use(cors());

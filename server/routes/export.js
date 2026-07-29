@@ -20,7 +20,8 @@ function sanitizeSheetName(name, used) {
 function buildVendorSheet(vendor, deal, items, people) {
   const rows = [
     ['Company Name', vendor.company_name || ''],
-    ['ACN/ABN', vendor.acn_number || ''],
+    ['ACN Number', vendor.acn_number || ''],
+    ['ABN Number', vendor.abn_number || ''],
     ['Company Address', vendor.company_address || ''],
     ['Company Email', vendor.company_email || ''],
     ['Are You The Sole Owner Of The Company?', vendor.sole_owner || ''],
