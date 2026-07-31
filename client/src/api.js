@@ -30,4 +30,18 @@ export const api = {
   addPerson: (vendorId, data) => request(`/vendors/${vendorId}/people`, { method: 'POST', body: JSON.stringify(data) }),
   updatePerson: (id, data) => request(`/people/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deletePerson: (id) => request(`/people/${id}`, { method: 'DELETE' }),
+  listTemplates: () => request('/templates'),
+  listPlaceholders: () => request('/templates/placeholders'),
+  uploadTemplate: async (country, file) => {
+    const formData = new FormData();
+    formData.append('country', country);
+    formData.append('file', file);
+    const res = await fetch(`${BASE}/templates`, { method: 'POST', body: formData });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `Request failed: ${res.status}`);
+    }
+    return res.json();
+  },
+  deleteTemplate: (id) => request(`/templates/${id}`, { method: 'DELETE' }),
 };

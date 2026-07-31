@@ -1,7 +1,9 @@
 import { Router } from 'express';
+import path from 'node:path';
 import { db } from '../db.js';
 import { seedChecklistForVendor } from '../checklistTemplate.js';
 import { sendKickoffEmail, sendWeeklyReminder } from '../email.js';
+import { buildMergeData, generateDocx, templatesDir, TemplateRenderError } from '../documentGenerator.js';
 
 const router = Router();
 
@@ -126,6 +128,39 @@ router.post('/:id/people', (req, res) => {
   `).run(req.params.id, body.full_name || null, body.address || null, body.phone || null, body.email || null, maxOrder.maxOrder + 1);
 
   res.status(201).json(db.prepare('SELECT * FROM vendor_people WHERE id = ?').get(result.lastInsertRowid));
+});
+
+// GET /api/vendors/:id/generate-document?template_id= — fill a franchise
+// template with this vendor's data and return the merged .docx
+router.get('/:id/generate-document', (req, res) => {
+  const vendor = db.prepare('SELECT * FROM vendors WHERE id = ?').get(req.params.id);
+  if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+  const templateId = req.query.template_id;
+  const template = templateId
+    ? db.prepare('SELECT * FROM franchise_templates WHERE id = ?').get(templateId)
+    : null;
+  if (!template) return res.status(404).json({ error: 'Template not found' });
+
+  const deal = db.prepare('SELECT * FROM deals WHERE vendor_id = ?').get(req.params.id);
+  const people = db.prepare('SELECT * FROM vendor_people WHERE vendor_id = ? ORDER BY sort_order').all(req.params.id);
+
+  try {
+    const data = buildMergeData(vendor, deal, people);
+    const buffer = generateDocx(path.join(templatesDir, template.stored_filename), data);
+    const safeName = vendor.company_name.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '') || 'vendor';
+    const filename = `${safeName}-franchise-agreement.docx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (err) {
+    if (err instanceof TemplateRenderError) {
+      return res.status(422).json({ error: `Template has a problem: ${err.message}` });
+    }
+    console.error('[documents] Failed to generate document:', err);
+    res.status(500).json({ error: 'Failed to generate document' });
+  }
 });
 
 // PUT /api/vendors/:id/company

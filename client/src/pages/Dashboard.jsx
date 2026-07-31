@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api.js'
 import NewVendorModal from '../components/NewVendorModal.jsx'
+import GenerateDocumentModal from '../components/GenerateDocumentModal.jsx'
 import Toggle from '../components/Toggle.jsx'
 import { STATUSES, STATUS_CLASS } from '../constants.js'
 import { formatDateOnly } from '../utils.js'
@@ -10,15 +11,19 @@ const STATUS_FILTERS = ['All', ...STATUSES]
 
 export default function Dashboard() {
   const [vendors, setVendors] = useState([])
+  const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [genDocVendor, setGenDocVendor] = useState(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [showArchived, setShowArchived] = useState(false)
 
   const load = () => {
     setLoading(true)
-    api.listVendors().then(setVendors).finally(() => setLoading(false))
+    Promise.all([api.listVendors(), api.listTemplates()])
+      .then(([v, t]) => { setVendors(v); setTemplates(t) })
+      .finally(() => setLoading(false))
   }
 
   useEffect(load, [])
@@ -51,6 +56,7 @@ export default function Dashboard() {
       <div className="topbar">
         <h1>Vendor Onboarding Checklists</h1>
         <div className="topbar-actions">
+          <Link to="/templates" className="btn secondary">Manage Templates</Link>
           <a href="/api/export/xlsx" className="btn secondary">Export to Excel</a>
           <button className="btn" onClick={() => setShowModal(true)}>+ New Vendor</button>
         </div>
@@ -119,6 +125,13 @@ export default function Dashboard() {
                     onChange={(enabled) => handleToggleReminder(v.id, enabled)}
                     label="Weekly email reminders"
                   />
+                  <button
+                    type="button"
+                    className="btn secondary small"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setGenDocVendor(v) }}
+                  >
+                    Create Franchise Document
+                  </button>
                 </div>
               </Link>
             )
@@ -128,6 +141,14 @@ export default function Dashboard() {
 
       {showModal && (
         <NewVendorModal onCancel={() => setShowModal(false)} onCreate={handleCreate} />
+      )}
+
+      {genDocVendor && (
+        <GenerateDocumentModal
+          vendor={genDocVendor}
+          templates={templates}
+          onClose={() => setGenDocVendor(null)}
+        />
       )}
     </div>
   )
