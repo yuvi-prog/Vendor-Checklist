@@ -10,6 +10,7 @@ import { migrate as migrateDorYamin } from './migrations/004_rename_dor_to_dor_y
 import { migrate as migrateVendorPeople } from './migrations/005_vendor_people.js';
 import { migrate as migrateAcnAbn } from './migrations/006_split_acn_abn.js';
 import { migrate as migrateFranchiseTemplates } from './migrations/007_franchise_templates.js';
+import { migrate as migrateTemplateItems } from './migrations/008_template_items.js';
 import vendorsRouter from './routes/vendors.js';
 import checklistRouter from './routes/checklist.js';
 import exportRouter from './routes/export.js';
@@ -26,6 +27,7 @@ migrateDorYamin(db);
 migrateVendorPeople(db);
 migrateAcnAbn(db);
 migrateFranchiseTemplates(db);
+migrateTemplateItems(db);
 
 const app = express();
 app.use(cors());
