@@ -24,6 +24,7 @@ export function buildMergeData(vendor, deal, people) {
     company_name: vendor.company_name || '',
     acn_number: vendor.acn_number || '',
     abn_number: vendor.abn_number || '',
+    cro_number: vendor.cro_number || '',
     company_address: vendor.company_address || '',
     company_email: vendor.company_email || '',
     sole_owner: vendor.sole_owner || '',
@@ -73,7 +74,7 @@ export function buildMergeData(vendor, deal, people) {
 }
 
 export const PLACEHOLDER_REFERENCE = [
-  { group: 'Company', tags: ['company_name', 'acn_number', 'abn_number', 'company_address', 'company_email', 'sole_owner', 'status'] },
+  { group: 'Company', tags: ['company_name', 'acn_number', 'abn_number', 'cro_number', 'company_address', 'company_email', 'sole_owner', 'status'] },
   { group: 'Deal Terms', tags: ['location', 'date_opening', 'things_to_do', 'total_deal', 'deposit', 'payment_plan', 'franchise_model', 'contract_shopping_center', 'display_included', 'training_included', 'online_shop_included', 'online_shop_details', 'stock_price', 'retail_price', 'wifi_included', 'laptop_included', 'setup_included', 'kiosk_size', 'kiosk_type', 'stationary_included'] },
   { group: 'People (up to 4, in order added)', tags: ['person_1_name', 'person_1_address', 'person_1_phone', 'person_1_email', 'person_2_name', 'person_2_address', 'person_2_phone', 'person_2_email', 'person_3_name', 'person_3_address', 'person_3_phone', 'person_3_email', 'person_4_name', 'person_4_address', 'person_4_phone', 'person_4_email'] },
   { group: 'Other', tags: ['today_date'] },

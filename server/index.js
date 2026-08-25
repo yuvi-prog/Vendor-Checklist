@@ -11,6 +11,7 @@ import { migrate as migrateVendorPeople } from './migrations/005_vendor_people.j
 import { migrate as migrateAcnAbn } from './migrations/006_split_acn_abn.js';
 import { migrate as migrateFranchiseTemplates } from './migrations/007_franchise_templates.js';
 import { migrate as migrateTemplateItems } from './migrations/008_template_items.js';
+import { migrate as migrateCroNumber } from './migrations/009_cro_number.js';
 import vendorsRouter from './routes/vendors.js';
 import checklistRouter from './routes/checklist.js';
 import exportRouter from './routes/export.js';
@@ -28,6 +29,7 @@ migrateVendorPeople(db);
 migrateAcnAbn(db);
 migrateFranchiseTemplates(db);
 migrateTemplateItems(db);
+migrateCroNumber(db);
 
 const app = express();
 app.use(cors());

@@ -89,6 +89,10 @@ export default function CompanyInfoForm({ vendor, people, onSaved, onPeopleChang
             <input value={form.abn_number || ''} onChange={set('abn_number')} name="abn_number" />
           </div>
           <div className="field">
+            <label>CRO number</label>
+            <input value={form.cro_number || ''} onChange={set('cro_number')} name="cro_number" />
+          </div>
+          <div className="field">
             <label>Company email</label>
             <input type="email" value={form.company_email || ''} onChange={set('company_email')} name="company_email" />
           </div>

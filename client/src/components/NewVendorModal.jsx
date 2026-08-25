@@ -5,6 +5,7 @@ const initial = {
   company_name: '',
   acn_number: '',
   abn_number: '',
+  cro_number: '',
   company_address: '',
   company_email: '',
   sole_owner: '',
@@ -63,6 +64,10 @@ export default function NewVendorModal({ onCancel, onCreate }) {
             <div className="field">
               <label>ABN number</label>
               <input value={form.abn_number} onChange={set('abn_number')} name="abn_number" />
+            </div>
+            <div className="field">
+              <label>CRO number</label>
+              <input value={form.cro_number} onChange={set('cro_number')} name="cro_number" />
             </div>
             <div className="field">
               <label>Company email</label>

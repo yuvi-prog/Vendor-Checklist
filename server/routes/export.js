@@ -22,6 +22,7 @@ function buildVendorSheet(vendor, deal, items, people) {
     ['Company Name', vendor.company_name || ''],
     ['ACN Number', vendor.acn_number || ''],
     ['ABN Number', vendor.abn_number || ''],
+    ['CRO Number', vendor.cro_number || ''],
     ['Company Address', vendor.company_address || ''],
     ['Company Email', vendor.company_email || ''],
     ['Are You The Sole Owner Of The Company?', vendor.sole_owner || ''],
